@@ -2,6 +2,11 @@
 
 This repository contains my custom shader parser, which takes in my custom GLSL supersest and generates valid GLSL code.
 
+### features
+- [x] shader splitting
+- [x] parameters for material properties
+- [ ] parameter display types (e.g. `#pragma display Color` or `#pragma display Slider 0.0 1.0`)
+
 ### example
 
 input:
