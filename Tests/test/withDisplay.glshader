@@ -1,8 +1,12 @@
 #pragma version 460 core
 
 #region parameters
+	#pragma display Color
 	uniform vec3 u_Color;
+
+	#pragma display Slider 0.0 1.0
 	uniform float u_Ambient;
+
 	uniform vec3 u_SunPos;
 #endregion
 

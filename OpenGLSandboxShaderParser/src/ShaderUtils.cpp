@@ -19,6 +19,15 @@ void ShaderUtils::WriteShaderFiles(const std::string& outputDir, const std::stri
 	}
 }
 
+std::string ShaderUtils::ToLowerCase(const std::string& inString)
+{
+	std::string lowercaseString;
+	for (auto c : inString)
+		lowercaseString += char(std::tolower(c));
+
+	return lowercaseString;
+}
+
 void ShaderUtils::WriteFile(const std::string& fileName, const std::string& contents)
 {
 	std::ofstream file(fileName, std::ios::out);

@@ -27,5 +27,6 @@
   <ItemGroup>
     <None Include="test\simpleSplit.glshader" />
     <None Include="test\parameters.glshader" />
+    <None Include="test\withDisplay.glshader" />
   </ItemGroup>
 </Project>

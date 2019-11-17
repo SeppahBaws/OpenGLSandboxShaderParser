@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "ShaderParser.h"
+#include "ShaderUtils.h"
 #include <algorithm>
 #include <locale>
 
@@ -44,7 +45,7 @@ namespace GLShaderParser
 
 		const std::map<ShaderType, std::string> sources = Generate();
 
-		std::cout << "Parsing Done!" << std::endl;
+		SHADER_LOG("Parsing Done!");
 
 		for (auto it = sources.begin(); it != sources.end(); ++it)
 		{
@@ -71,7 +72,7 @@ namespace GLShaderParser
 		std::ifstream in(path, std::ios::in | std::ios::binary);
 		if (!in)
 		{
-			std::cout << "Unable to open file '" << path << "'" << std::endl;
+			SHADER_LOG_ERR("Unable to open file '" << path << "'");
 			return false;
 		}
 
@@ -89,9 +90,7 @@ namespace GLShaderParser
 	{
 		ShaderType type = ShaderType::Invalid;
 
-		std::string lowerType;
-		for (auto c : typeSrc)
-			lowerType += std::tolower(c);
+		std::string lowerType = ShaderUtils::ToLowerCase(typeSrc);
 
 		if (lowerType == "vertex")
 			type = ShaderType::Vertex;
@@ -194,7 +193,7 @@ namespace GLShaderParser
 					ShaderType type = ShaderTypeFromString(currentShader.type);
 					if (type == ShaderType::Invalid)
 					{
-						std::cerr << "Invalid shader type!" << std::endl;
+						SHADER_LOG_ERR("Invalid shader type!");
 						return false;
 					}
 					
@@ -227,7 +226,9 @@ namespace GLShaderParser
 			return false;
 
 		if (!ProcessParameters())
-			std::cout << "This shader doesn't contain any material parameters." << std::endl;
+		{
+			SHADER_LOG("This shader doesn't contain any material parameters.");
+		}
 
 		if (!ProcessShaders())
 			return false;
@@ -239,9 +240,53 @@ namespace GLShaderParser
 	{
 		for (auto& pragma : m_Pragmas)
 		{
+			// Convert contents to lower case
+			pragma.contents = ShaderUtils::ToLowerCase(pragma.contents);
+
+			size_t index = std::string::npos; // To store where in the pragma the definition is.
+			
 			if (pragma.contents.find("version") != std::string::npos)
 			{
 				m_ShaderConfig.version = pragma.contents;
+			}
+			else if (pragma.contents.find("display") != std::string::npos)
+			{
+				SHADER_LOG("Found display pragma: [" << pragma.lineNumber << "] " << pragma.contents);
+
+				if (pragma.contents.find("color") != std::string::npos)
+				{
+					// Register display pragma
+					m_DisplayPragmas[pragma.lineNumber] = DisplayProperties{
+						DisplayType::ColorPicker, ""
+					};
+
+					SHADER_LOG("Display Pragma found as Color picker!");
+				}
+				else if ((index = pragma.contents.find("slider")) != std::string::npos)
+				{
+					const size_t tokLength = std::strlen("slider") + 1;
+
+					// Register display pragma
+					m_DisplayPragmas[pragma.lineNumber] = DisplayProperties{
+						DisplayType::Slider,
+						pragma.contents.substr(index + tokLength) // TODO: check if options *are* supplied
+					};
+
+					SHADER_LOG("Display Pragma found as Slider!");
+				}
+				else if (pragma.contents.find("hidden") != std::string::npos)
+				{
+					m_DisplayPragmas[pragma.lineNumber] = DisplayProperties{
+						DisplayType::Hidden, ""
+					};
+
+					SHADER_LOG("Display Pragma found as Hidden!");
+				}
+				else
+				{
+					SHADER_LOG_ERR("Invalid Display Pragma type supplied at line " << pragma.lineNumber);
+					return false;
+				}
 			}
 		}
 
@@ -262,7 +307,7 @@ namespace GLShaderParser
 			if (m_Source[i].find("uniform") != std::string::npos)
 			{
 				Parameter param{};
-				if (!ParseUniform(m_Source[i], param))
+				if (!ParseUniform(i, m_Source[i], param))
 					return false;
 
 				m_Parameters.push_back(param);
@@ -292,11 +337,11 @@ namespace GLShaderParser
 			shader.code += shaderSource + "\n";
 		}
 
-		std::cout << "Shaders processed!" << std::endl;
+		SHADER_LOG("Shaders processed!");
 		return true;
 	}
 
-	bool ShaderParser::ParseUniform(const std::string& rawLine, Parameter& param)
+	bool ShaderParser::ParseUniform(int lineNr, const std::string& rawLine, Parameter& param)
 	{
 		// TODO: no default values yet.
 		// const static std::regex r = std::regex("^\\s*uniform\\s+(\\w+)\\s+(\\w+)(?:\\s*=\\s*(.+?))?;.*$");
@@ -309,7 +354,7 @@ namespace GLShaderParser
 		{
 			if (matches.size() != 3)
 			{
-				std::cerr << "Invalid uniform composition." << std::endl;
+				SHADER_LOG_ERR("Invalid uniform composition.");
 				return false;
 			}
 
@@ -318,10 +363,22 @@ namespace GLShaderParser
 			param.name = matches[2];
 			param.rawLine = rawLine;
 
+			try
+			{
+				DisplayProperties props = m_DisplayPragmas.at(lineNr - 1);
+				param.display = props.type;
+				param.displayOptions = props.options;
+			}
+			catch (std::out_of_range&) // No DisplayProperties found at lineNr
+			{
+				param.display = DisplayType::Hidden;
+				param.displayOptions = "";
+			}
+
 			return true; // successfully parsed uniform variable.
 		}
 
-		std::cerr << "No matches with uniforms." << std::endl;
+		SHADER_LOG_ERR("No matches with uniforms.");
 		return false;
 	}
 
@@ -333,7 +390,6 @@ namespace GLShaderParser
 		for (auto it = m_Shaders.begin(); it != m_Shaders.end(); ++it)
 		{
 			Shader shader = it->second;
-			currentShader = "";
 
 			// Shader version
 			currentShader = "#" + m_ShaderConfig.version + "\n";
@@ -359,5 +415,4 @@ namespace GLShaderParser
 
 		return sources;
 	}
-	
 }

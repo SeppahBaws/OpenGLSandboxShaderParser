@@ -50,3 +50,38 @@ TEST_CASE("Parameters get successfully read")
 
 	ShaderUtils::WriteShaderFiles("test/output", "parameters", data);
 }
+
+TEST_CASE("Special display pragmas get applied")
+{
+	ShaderParser parser;
+	ShaderData data;
+	bool success = parser.Parse("test/withDisplay.glshader", data);
+
+	REQUIRE(success);
+	REQUIRE(!data.vertexShader.empty());
+	REQUIRE(!data.fragmentShader.empty());
+	REQUIRE(!data.parameters.empty());
+
+	for (Parameter parameter : data.parameters)
+	{
+		SHADER_LOG("Name: " << parameter.name);
+		
+		if (parameter.name == "u_Color")
+		{
+			REQUIRE(parameter.display == DisplayType::ColorPicker);
+			REQUIRE(parameter.displayOptions.empty());
+		}
+		if (parameter.name == "u_Ambient")
+		{
+			REQUIRE(parameter.display == DisplayType::Slider);
+			REQUIRE(parameter.displayOptions == "0.0 1.0");
+		}
+		if (parameter.name == "u_SunPos")
+		{
+			REQUIRE(parameter.display == DisplayType::Hidden);
+			REQUIRE(parameter.displayOptions.empty());
+		}
+	}
+
+	ShaderUtils::WriteShaderFiles("test/output", "withDisplay", data);
+}

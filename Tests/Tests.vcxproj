@@ -159,6 +159,7 @@
   <ItemGroup>
     <None Include="test\parameters.glshader" />
     <None Include="test\simpleSplit.glshader" />
+    <None Include="test\withDisplay.glshader" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

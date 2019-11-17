@@ -31,6 +31,19 @@ namespace GLShaderParser
 		Sampler2D	= GL_SAMPLER_2D
 	};
 
+	enum class DisplayType
+	{
+		Hidden,
+		ColorPicker,
+		Slider
+	};
+
+	struct DisplayProperties
+	{
+		DisplayType type;
+		std::string options;
+	};
+
 	struct ShaderConfig
 	{
 		std::string version;
@@ -52,6 +65,8 @@ namespace GLShaderParser
 	struct Parameter
 	{
 		DataType type;
+		DisplayType display = DisplayType::Hidden;
+		std::string displayOptions = "";
 		std::string name;
 		std::string rawLine;
 	};
@@ -105,7 +120,7 @@ namespace GLShaderParser
 		bool ProcessParameters();
 		bool ProcessShaders();
 
-		bool ParseUniform(const std::string& rawLine, Parameter& param);
+		bool ParseUniform(int lineNr, const std::string& rawLine, Parameter& param);
 	
 		std::map<ShaderType, std::string> Generate();
 
@@ -121,6 +136,8 @@ namespace GLShaderParser
 		std::vector<Parameter> m_Parameters;
 		std::map<ShaderType, Shader> m_Shaders;
 		int m_ShaderLineCount = -1;
+
+		std::map<int, DisplayProperties> m_DisplayPragmas;
 
 		static std::map<std::string, DataType> s_DataTypeLookup;
 	};
